@@ -1389,6 +1389,51 @@ IlBuilder::Call(const char *functionName, int32_t numArgs, TR::IlValue ** argVal
    return NULL;
    }
 
+TR::IlValue *
+IlBuilder::AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * offset, TR::IlValue * value)
+   {
+   TraceIL("IlBuilder[ %p ]::AtomicIntegerAdd (%s,%s, %s)\n", this, object, offset, value);
+   appendBlock();
+
+   TR::DataType returnType = TR::Int32;
+   
+   TR::SymbolReference *methodSymRef = symRefTab()->findOrCreateNonHelper(TR::SymbolReferenceTable::atomicAddIntSymbol); //lock add
+   TR::Node *callNode = TR::Node::createWithSymRef(TR::ILOpCode::getDirectCall(returnType), 3, methodSymRef);
+
+   callNode->setAndIncChild(0, loadValue(object));
+   callNode->setAndIncChild(1, loadValue(offset));
+   callNode->setAndIncChild(2, loadValue(value));
+
+   genTreeTop(callNode); 
+   TR::IlValue *returnValue = newValue(callNode->getDataType());
+   genTreeTop(TR::Node::createStore(returnValue, callNode)); 
+   
+   return returnValue; 
+   }
+
+TR::IlValue *
+IlBuilder::AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * value)
+   {
+   TraceIL("IlBuilder[ %p ]::AtomicIntegerAdd (%s,%s, %s)\n", this, object, offset, value);
+   appendBlock();
+
+   TR::DataType returnType = TR::Int32;
+   
+   TR::SymbolReference *methodSymRef = symRefTab()->findOrCreateNonHelper(TR::SymbolReferenceTable::atomicAddIntSymbol); //lock add
+   TR::Node *callNode = TR::Node::createWithSymRef(TR::ILOpCode::getDirectCall(returnType), 2, methodSymRef);
+
+   callNode->setAndIncChild(0, loadValue(object));
+   callNode->setAndIncChild(1, loadValue(value));
+
+   genTreeTop(callNode); 
+   TR::IlValue *returnValue = newValue(callNode->getDataType());
+   genTreeTop(TR::Node::createStore(returnValue, callNode)); 
+   
+   return returnValue;    
+   }
+
+
+
 void
 IlBuilder::IfCmpNotEqualZero(TR::IlBuilder **target, TR::IlValue *condition)
    {
@@ -1422,6 +1467,7 @@ IlBuilder::IfCmpEqual(TR::IlBuilder **target, TR::IlValue *left, TR::IlValue *ri
    *target = createBuilderIfNeeded(*target);
    ILB_REPLAY("%s->IfCmpEqual(%s, %s, %s);", REPLAY_BUILDER(this), REPLAY_BUILDER(target), REPLAY_VALUE(left), REPLAY_VALUE(right));
    TraceIL("IlBuilder[ %p ]::IfCmpEqual %d == %d? -> B%d\n", this, left->getCPIndex(), right->getCPIndex(), (*target)->getEntry()->getNumber());
+   AppendBuilder(*target);
    ifCmpEqual(left, right, (*target)->getEntry());
    }
 

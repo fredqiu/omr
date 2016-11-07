@@ -1650,6 +1650,22 @@ TR_Debug::getName(TR::SymbolReference * symRef)
             return "<killsAllMethod>";
          case TR::SymbolReferenceTable::usesAllMethodSymbol:
             return "<usesAllMethod>";
+         case TR::SymbolReferenceTable::atomicAddIntSymbol:
+             return "<atomicAddInt>";
+         case TR::SymbolReferenceTable::atomicFetchAndAddIntSymbol:
+             return "<atomicFetchAndAddInt>";
+         case TR::SymbolReferenceTable::atomicSwapIntSymbol:
+             return "<atomicSwapIntSymbol>";
+         case TR::SymbolReferenceTable::atomicCompareAndSwapIntSymbol:
+             return "<atomicCompareAndSwapInt>";
+         case TR::SymbolReferenceTable::atomicAddLongSymbol:
+             return "<atomicAddLong>";
+         case TR::SymbolReferenceTable::atomicFetchAndAddLongSymbol:
+             return "<atomicFetchAndAddLong>";
+         case TR::SymbolReferenceTable::atomicSwapLongSymbol:
+             return "<atomicSwapLong>";
+         case TR::SymbolReferenceTable::atomicCompareAndSwapLongSymbol:
+             return "<atomicCompareAndSwapLong>";
          }
       }
 
@@ -2101,6 +2117,14 @@ static const char *commonNonhelperSymbolNames[] =
    "<j9methodExtraField>",
    "<startPCLinkageInfo>",
    "<instanceShapeFromROMClass>",
+   "<atomicAddInt>",
+   "<atomicFetchAndAddInt>",
+   "<atomicSwapIntSymbol>",
+   "<atomicCompareAndSwapInt>",
+   "<atomicAddLong>",
+   "<atomicFetchAndAddLong>",
+   "<atomicSwapLong>",
+   "<atomicCompareAndSwapLong>",
    "<pythonFrame_CodeObject>",
    "<pythonFrame_FastLocals>",
    "<pythonFrame_Globals>",

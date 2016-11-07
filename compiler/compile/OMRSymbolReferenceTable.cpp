@@ -708,6 +708,18 @@ OMR::SymbolReferenceTable::findOrCreateRuntimeHelper(TR_RuntimeHelper index, boo
    return symRef;
    }
 
+TR::SymbolReference *
+OMR::SymbolReferenceTable::findOrCreateNonHelper(CommonNonhelperSymbol index)
+   {
+   if (!element(index))
+      {
+      TR::MethodSymbol * sym = TR::MethodSymbol::create(trHeapMemory(),TR_Helper);
+      sym->setHelper();
+      sym->setIsInlinedByCG();
+      element(index) = new (trHeapMemory()) TR::SymbolReference(self(), index, sym);
+      }
+   return element(index);
+   }
 
 TR::SymbolReference *
 OMR::SymbolReferenceTable::findOrCreateNewObjectSymbolRef(TR::ResolvedMethodSymbol *)

@@ -57,14 +57,14 @@ main(int argc, char *argv[])
       }
 
    cout << "Step 4: invoke compiled code and print results\n";
-   typedef int32_t (SimpleMethodFunction)(int32_t);
+   typedef int32_t (SimpleMethodFunction)(int32_t*);
    SimpleMethodFunction *increment = (SimpleMethodFunction *) entry;
 
    int32_t v;
-   v=0;   cout << "increment(" << v << ") == " << increment(v) << "\n";
-   v=1;   cout << "increment(" << v << ") == " << increment(v) << "\n";
-   v=10;  cout << "increment(" << v << ") == " << increment(v) << "\n";
-   v=-15; cout << "increment(" << v << ") == " << increment(v) << "\n";
+   v=0;   cout << "increment(" << v; cout << ") == " << increment(&v) << "\n";
+   v=1;   cout << "increment(" << v; cout << ") == " << increment(&v) << "\n";
+   v=10;  cout << "increment(" << v; cout << ") == " << increment(&v) << "\n";
+   v=-15; cout << "increment(" << v; cout << ") == " << increment(&v) << "\n";
 
    cout << "Step 5: shutdown JIT\n";
    shutdownJit();
@@ -79,7 +79,8 @@ SimpleMethod::SimpleMethod(TR::TypeDictionary *d)
    DefineFile(__FILE__);
 
    DefineName("increment");
-   DefineParameter("value", Int32);
+   pInt32=d->PointerTo(Int32);
+   DefineParameter("addressOfValue", pInt32);
    DefineReturnType(Int32);
    }
 
@@ -87,10 +88,11 @@ bool
 SimpleMethod::buildIL()
    {
    cout << "SimpleMethod::buildIL() running!\n";
-   Return(
-      Add(
-         Load("value"),
-         ConstInt32(1)));
-
+   AtomicIntegerAdd(
+           IndexAt(pInt32, Load("addressOfValue"), ConstInt32(0)),
+           ConstInt32(1));
+   Return(LoadAt(pInt32, Load("addressOfValue")));
+   
    return true;
    }
+

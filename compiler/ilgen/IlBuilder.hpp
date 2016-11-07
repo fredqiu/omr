@@ -193,6 +193,10 @@ public:
    void AppendBuilder(TR::IlBuilder *builder);
    TR::IlValue *Call(const char *name, int32_t numArgs, ...);
    TR::IlValue *Call(const char *name, int32_t numArgs, TR::IlValue ** paramValues);
+
+   TR::IlValue * AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * offset, TR::IlValue * value); 
+   TR::IlValue * AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * value);   
+ 
    void Goto(TR::IlBuilder **dest);
    void Return();
    void Return(TR::IlValue *value);

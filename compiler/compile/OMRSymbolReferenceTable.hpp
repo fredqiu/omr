@@ -161,6 +161,16 @@ class SymbolReferenceTable
       startPCLinkageInfoSymbol,
       instanceShapeFromROMClassSymbol,
 
+      // common atomic primitives
+      atomicAddIntSymbol,
+      atomicFetchAndAddIntSymbol,
+      atomicSwapIntSymbol,
+      atomicCompareAndSwapIntSymbol,
+      atomicAddLongSymbol,
+      atomicFetchAndAddLongSymbol,
+      atomicSwapLongSymbol,
+      atomicCompareAndSwapLongSymbol,
+
       // python symbols start here
       pythonFrameCodeObjectSymbol,   // code object from the frame object
       pythonFrameFastLocalsSymbol,   // fastlocals array base from the frame object
@@ -232,6 +242,8 @@ class SymbolReferenceTable
 
    TR::SymbolReference * createRuntimeHelper(TR_RuntimeHelper, bool = false, bool = false, bool preservesAllRegisters = false);
    TR::SymbolReference * findOrCreateRuntimeHelper(TR_RuntimeHelper, bool, bool, bool preservesAllRegisters);
+
+   TR::SymbolReference * findOrCreateNonHelper(CommonNonhelperSymbol index);
 
    TR::ParameterSymbol * createParameterSymbol(TR::ResolvedMethodSymbol * owningMethodSymbol, int32_t slot, TR::DataType, bool isUnsigned);
    TR::SymbolReference * findOrCreateAutoSymbol(TR::ResolvedMethodSymbol * owningMethodSymbol, int32_t slot, TR::DataType, bool isReference = true,

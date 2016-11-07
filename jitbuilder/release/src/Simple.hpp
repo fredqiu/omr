@@ -24,6 +24,8 @@
 
 class SimpleMethod : public TR::MethodBuilder
    {
+   private:
+   TR::IlType *pInt32;
    public:
    SimpleMethod(TR::TypeDictionary *);
    virtual bool buildIL();
