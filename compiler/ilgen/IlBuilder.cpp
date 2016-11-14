@@ -1392,7 +1392,7 @@ IlBuilder::Call(const char *functionName, int32_t numArgs, TR::IlValue ** argVal
 TR::IlValue *
 IlBuilder::AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * offset, TR::IlValue * value)
    {
-   TraceIL("IlBuilder[ %p ]::AtomicIntegerAdd (%s,%s, %s)\n", this, object, offset, value);
+   TraceIL("IlBuilder[ %p ]::AtomicIntegerAdd (%d, %d, %d)\n", this, object->getCPIndex(), offset->getCPIndex(), value->getCPIndex());
    appendBlock();
 
    TR::DataType returnType = TR::Int32;
@@ -1414,7 +1414,7 @@ IlBuilder::AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * offset, TR::IlVa
 TR::IlValue *
 IlBuilder::AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * value)
    {
-   TraceIL("IlBuilder[ %p ]::AtomicIntegerAdd (%s,%s, %s)\n", this, object, offset, value);
+   TraceIL("IlBuilder[ %p ]::AtomicIntegerAdd (%d, %d)\n", this, object->getCPIndex(), value->getCPIndex());
    appendBlock();
 
    TR::DataType returnType = TR::Int32;
@@ -1431,8 +1431,6 @@ IlBuilder::AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * value)
    
    return returnValue;    
    }
-
-
 
 void
 IlBuilder::IfCmpNotEqualZero(TR::IlBuilder **target, TR::IlValue *condition)
@@ -1467,7 +1465,6 @@ IlBuilder::IfCmpEqual(TR::IlBuilder **target, TR::IlValue *left, TR::IlValue *ri
    *target = createBuilderIfNeeded(*target);
    ILB_REPLAY("%s->IfCmpEqual(%s, %s, %s);", REPLAY_BUILDER(this), REPLAY_BUILDER(target), REPLAY_VALUE(left), REPLAY_VALUE(right));
    TraceIL("IlBuilder[ %p ]::IfCmpEqual %d == %d? -> B%d\n", this, left->getCPIndex(), right->getCPIndex(), (*target)->getEntry()->getNumber());
-   AppendBuilder(*target);
    ifCmpEqual(left, right, (*target)->getEntry());
    }
 
