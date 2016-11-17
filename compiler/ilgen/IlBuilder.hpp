@@ -196,7 +196,11 @@ public:
 
    TR::IlValue * AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * offset, TR::IlValue * value); 
    TR::IlValue * AtomicIntegerAdd(TR::IlValue * object, TR::IlValue * value);   
- 
+
+   void TransactionBegin(TR::IlBuilder **persistentFailureBuilder, TR::IlBuilder **transientFailureBuilder, TR::IlBuilder **fallThroughBuilder);
+   void TransactionEnd(); 
+   void TransactionAbort();
+
    void Goto(TR::IlBuilder **dest);
    void Return();
    void Return(TR::IlValue *value);

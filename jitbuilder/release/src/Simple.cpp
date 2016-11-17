@@ -31,6 +31,16 @@
 using std::cout;
 using std::cerr;
 
+static int32_t
+doublesum(int32_t first, int32_t second)
+   {   
+   #define DOUBLESUM_LINE LINETOSTR(__LINE__)
+   int32_t result = 2 * (first + second);
+   fprintf(stderr,"doublesum(%d, %d) == %d\n", first, second, result);
+   return result;
+   }   
+
+
 
 int
 main(int argc, char *argv[])
@@ -82,17 +92,39 @@ SimpleMethod::SimpleMethod(TR::TypeDictionary *d)
    pInt32=d->PointerTo(Int32);
    DefineParameter("addressOfValue", pInt32);
    DefineReturnType(Int32);
-   }
+   
+   DefineFunction((char *)"doublesum",
+              (char *)__FILE__,
+              (char *)DOUBLESUM_LINE,
+              (void *)&doublesum,
+              Int32,
+              2,
+              Int32,
+              Int32);
+
+	}
 
 bool
 SimpleMethod::buildIL()
    {
    cout << "SimpleMethod::buildIL() running!\n";
-   AtomicIntegerAdd(
-           IndexAt(pInt32, Load("addressOfValue"), ConstInt32(0)),
-           ConstInt32(1));
+
+   TR::IlBuilder *persistent=NULL;
+   TR::IlBuilder *transient=NULL;
+   TR::IlBuilder *fallthrough=NULL; 
+   TransactionBegin(&persistent, &transient, &fallthrough);
+  
+   persistent->AtomicIntegerAdd(
+           persistent->IndexAt(pInt32, persistent->Load("addressOfValue"), persistent->ConstInt32(0)),
+           persistent->ConstInt32(1));
+   transient->Goto(&persistent);
+   fallthrough->StoreAt(fallthrough->IndexAt(pInt32,fallthrough->Load("addressOfValue"), fallthrough->ConstInt32(0)),
+                        fallthrough->Add(fallthrough->LoadAt(pInt32, fallthrough->IndexAt(pInt32, fallthrough->Load("addressOfValue"), fallthrough->ConstInt32(0))),
+                                         fallthrough->ConstInt32(1)));
+
+   fallthrough->TransactionEnd();
    Return(LoadAt(pInt32, Load("addressOfValue")));
-   
+
    return true;
    }
 

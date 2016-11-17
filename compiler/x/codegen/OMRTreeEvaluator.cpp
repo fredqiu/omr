@@ -4763,6 +4763,151 @@ TR::Register *OMR::X86::TreeEvaluator::atomicorEvaluator(TR::Node *node, TR::Cod
    return NULL;
    }
 
+TR::Register *                                                                                                                                                             
+OMR::X86::TreeEvaluator::tstartEvaluator(TR::Node *node, TR::CodeGenerator *cg)                                                                                             
+   {                                                                                                                                                                       
+   /*         
+   //use a dummy placeholder                                                                                                                                                                     
+   mov             rax, objectPointer?
+   .Lstart:
+      xbegin       .Labort
+      jmp          fallThroughLabel
+   .Labort:
+      test         eax, 2
+      jne          .Lstart              //or jne .Lstart
+      jmp          .Lpersistent
+   .Lfinish:  
+   */                                                                                                                                                                      
+   TR::Node *persistentFailureNode = node->getFirstChild();
+   TR::Node *transientFailureNode = node->getSecondChild();                                                                                                                
+   TR::Node *fallThroughNode = node->getThirdChild();
+   TR::Node *GRANode = NULL;                                                                                                                                               
+                                                                                                                                                                           
+   TR::LabelSymbol *startLabel = TR::LabelSymbol::create(cg->trHeapMemory(),cg);                                                                                           
+   startLabel->setStartInternalControlFlow();                                                                                                                              
+   TR::LabelSymbol *endLabel = TR::LabelSymbol::create(cg->trHeapMemory(),cg);                                                                                             
+   endLabel->setEndInternalControlFlow();                                                                                                                                  
+                    
+   TR::LabelSymbol *abortLabel = TR::LabelSymbol::create(cg->trHeapMemory(),cg);                                                                                    
+   TR::LabelSymbol *persistentFailureLabel = persistentFailureNode->getBranchDestination()->getNode()->getLabel();                                                         
+   TR::LabelSymbol *fallThroughLabel = fallThroughNode->getBranchDestination()->getNode()->getLabel();    
+   TR::LabelSymbol *transientFailureLabel  = transientFailureNode->getBranchDestination()->getNode()->getLabel();     
+
+   traceMsg(cg->comp(), "persistent Node: %p falThrough Node: %p\n", persistentFailureNode->getBranchDestination()->getNode(),  fallThroughNode->getBranchDestination()->getNode());
+   traceMsg(cg->comp(), "persistent Node Label: %p falThrough Node Label: %p\n", persistentFailureNode->getBranchDestination()->getNode()->getLabel(),  fallThroughNode->getBranchDestination()->getNode()->getLabel());
+
+   if(!persistentFailureLabel){
+      persistentFailureLabel = generateLabelSymbol(cg);  
+      persistentFailureNode->getBranchDestination()->getNode()->setLabel(persistentFailureLabel);
+   }     
+             
+   if(!fallThroughLabel){
+      fallThroughLabel = generateLabelSymbol(cg); 
+      fallThroughNode->getBranchDestination()->getNode()->setLabel(fallThroughLabel);
+   }         
+
+   if(!transientFailureLabel){
+       transientFailureLabel = generateLabelSymbol(cg); 
+       transientFailureNode->getBranchDestination()->getNode()->setLabel(transientFailureLabel);
+   }                                
+    
+   TR::Register *accReg = cg->allocateRegister();                                                                                                                          
+   TR::RegisterDependencyConditions *endLabelConditions;
+   TR::RegisterDependencyConditions *fallThroughConditions = NULL;
+   TR::RegisterDependencyConditions *persistentConditions = NULL;
+   TR::RegisterDependencyConditions *transientConditions = NULL;
+
+   if (fallThroughNode->getNumChildren() != 0)
+      {
+      GRANode = fallThroughNode->getFirstChild();
+      cg->evaluate(GRANode);
+      List<TR::Register> popRegisters(cg->trMemory());
+      fallThroughConditions = generateRegisterDependencyConditions(GRANode, cg, 0, &popRegisters);
+      cg->decReferenceCount(GRANode);
+      }
+
+   if (persistentFailureNode->getNumChildren() != 0)
+      {
+      GRANode = persistentFailureNode->getFirstChild();
+      cg->evaluate(GRANode);
+      List<TR::Register> popRegisters(cg->trMemory());
+      persistentConditions = generateRegisterDependencyConditions(GRANode, cg, 0, &popRegisters);
+      cg->decReferenceCount(GRANode);
+      }
+
+   if (transientFailureNode->getNumChildren() != 0)
+      {
+      GRANode = transientFailureNode->getFirstChild();
+      cg->evaluate(GRANode);
+      List<TR::Register> popRegisters(cg->trMemory());
+      transientConditions = generateRegisterDependencyConditions(GRANode, cg, 0, &popRegisters);
+      cg->decReferenceCount(GRANode);
+      }
+
+   //startLabel
+   //add place holder register so that eax would not contain any useful value before xbegin
+   TR::Register *dummyReg = cg->allocateRegister();
+   dummyReg->setPlaceholderReg();
+   TR::RegisterDependencyConditions *startLabelConditions = generateRegisterDependencyConditions((uint8_t)0, 1, cg);
+   startLabelConditions->addPostCondition(dummyReg, TR::RealRegister::eax, cg);
+   startLabelConditions->stopAddingConditions();
+   cg->stopUsingRegister(dummyReg);
+   generateLabelInstruction(LABEL, node, startLabel, startLabelConditions, cg);
+
+   //xbegin, if abort then go to abortLabel
+   generateLongLabelInstruction(XBEGIN4, node, abortLabel, cg);  
+
+   //jump to  FTPath
+   if (fallThroughConditions)
+      generateLabelInstruction(JMP4, node, fallThroughLabel, fallThroughConditions, cg);
+   else
+      generateLabelInstruction(JMP4, node, fallThroughLabel, cg);
+
+   endLabelConditions = generateRegisterDependencyConditions((uint8_t)0, 1, cg);
+   endLabelConditions->addPostCondition(accReg, TR::RealRegister::eax, cg);
+   endLabelConditions->stopAddingConditions();
+  
+   //Label abort begin:
+   generateLabelInstruction(LABEL, node, abortLabel, cg);
+
+   // test eax, 0x2
+   generateRegImmInstruction(TEST1AccImm1, node, accReg, 0x2, cg);
+   if(transientConditions)
+      generateLabelInstruction(JNE4, node, transientFailureLabel, transientConditions, cg);
+   else
+      generateLabelInstruction(JNE4, node, transientFailureLabel, cg);
+
+   cg->stopUsingRegister(accReg);
+ 
+   //jmp to persistent begin:
+   if (persistentConditions)
+      generateLabelInstruction(JMP4, node, persistentFailureLabel, persistentConditions, cg);
+   else
+      generateLabelInstruction(JMP4, node, persistentFailureLabel, cg);
+
+   //Label finish
+   generateLabelInstruction(LABEL, node, endLabel, endLabelConditions, cg);
+
+   cg->decReferenceCount(persistentFailureNode);
+   cg->decReferenceCount(transientFailureNode);
+   
+   return NULL;
+   }
+
+TR::Register *
+OMR::X86::TreeEvaluator::tfinishEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+   {
+   generateInstruction(XEND, node, cg);
+   return NULL;
+   }
+
+TR::Register *
+OMR::X86::TreeEvaluator::tabortEvaluator(TR::Node *node, TR::CodeGenerator *cg)
+   {
+   generateImmInstruction(XABORT, node, 0x04, cg);
+   return NULL;
+   }
+
 TR::Register *
 OMR::X86::TreeEvaluator::VMarrayStoreCheckArrayCopyEvaluator(TR::Node*, TR::CodeGenerator*)
    {
